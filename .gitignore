@@ -1,0 +1,49 @@
+# Dependencies
+wspbot/node_modules/
+dlapi/app/__pycache__/
+dlapi/app/**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build outputs
+wspbot/dist/
+*.tsbuildinfo
+
+# WhatsApp session data (sensitive)
+wspbot/auth_info_baileys/
+wspbot/.wwebjs_auth/
+wspbot/.wwebjs_cache/
+
+# Logs
+wspbot/logs/
+*.log
+dlapi/*.log
+
+# Downloaded media (regenerable)
+dlapi/downloads/*
+
+# Environment files (sensitive)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing/coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.tmp
+*.temp

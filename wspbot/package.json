@@ -1,0 +1,24 @@
+{
+  "name": "wspbot",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "@hapi/boom": "latest",
+    "qrcode-terminal": "latest",
+    "sharp": "latest",
+    "fluent-ffmpeg": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "tsx": "latest",
+    "@types/node": "latest",
+    "@types/qrcode-terminal": "latest",
+    "@types/fluent-ffmpeg": "latest"
+  }
+}
