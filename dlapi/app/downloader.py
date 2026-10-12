@@ -148,6 +148,7 @@ def inject_metadata(
     audio.save(final_path)
 
     # Construir dict de respuesta
+    view_count = yt.views if hasattr(yt, 'views') else 0
     metadata = {
         "title": yt.title,
         "artist": yt.author,
@@ -160,7 +161,7 @@ def inject_metadata(
         "youtube_url": yt.watch_url,
         "filesize_bytes": file_size,
         "filesize_formatted": format_filesize(file_size),
-        # "has_cover": cover_bytes is not None,
+        "views_formatted": format_view_count(view_count),
         "video_id": yt.video_id
     }
 

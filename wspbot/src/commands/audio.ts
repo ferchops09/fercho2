@@ -1,8 +1,13 @@
 import type { WAMessage } from '@whiskeysockets/baileys';
 import { registerCommand } from './index.js';
 import { saveSearch, getSearch, hasValidSearch } from '../utils/searchCache.js';
+import { readFile, readFileSync, statSync, unlinkSync, renameSync } from 'fs';
+import { promisify } from 'util';
+import { execFile } from 'child_process';
 
 const DLAPI_BASE = process.env.DLAPI_URL || 'http://localhost:7421';
+
+const execFileAsync = promisify(execFile);
 
 export interface SearchResult {
   title: string;
@@ -37,6 +42,7 @@ interface DownloadResponse {
     filesize_bytes: number;
     filesize_formatted: string;
     video_id: string;
+    views_formatted?: string;
   };
   message?: string;
 }
@@ -228,10 +234,12 @@ async function audioHandler(ctx: {
       // Verificar si es una URL de YouTube
       const videoIdFromUrl = extractVideoId(query);
       let videoId: string;
+      let shouldCache = true;
 
       if (videoIdFromUrl) {
-        // USO 3: URL directa de YouTube
+        // USO 3: URL directa de YouTube - no cachear
         videoId = videoIdFromUrl;
+        shouldCache = false;
       } else {
         // USO 1: Buscar y descargar primer resultado
         const results = await searchYouTube(query, 1);
@@ -240,17 +248,10 @@ async function audioHandler(ctx: {
           return;
         }
 
-        // Guardar en cache también
-        saveSearch(chatId, query, results);
         videoId = results[0].video_id;
-      }
 
-      // Guardar en cache si vino de búsqueda (no de URL directa)
-      if (!videoIdFromUrl) {
-        const results = await searchYouTube(query, 1);
-        if (results.length > 0) {
-          saveSearch(chatId, query, results);
-        }
+        // Guardar en cache
+        saveSearch(chatId, query, results);
       }
 
       await downloadAndSend(videoId, ctx, msg);
@@ -266,11 +267,6 @@ async function audioHandler(ctx: {
 }
 
 async function cleanAudioFile(inputPath: string): Promise<string> {
-  const fs = await import('fs');
-  const { promisify } = await import('util');
-  const { execFile } = await import('child_process');
-  const execFileAsync = promisify(execFile);
-
   const outputPath = inputPath.replace('.m4a', '.clean.m4a');
 
   // Usar ffmpeg para copiar solo el stream de audio, eliminando video (cover art)
@@ -284,7 +280,7 @@ async function cleanAudioFile(inputPath: string): Promise<string> {
   ]);
 
   // Reemplazar archivo original con el limpio
-  fs.renameSync(outputPath, inputPath);
+  renameSync(outputPath, inputPath);
   return inputPath;
 }
 
@@ -313,29 +309,17 @@ async function downloadAndSend(
     }
 
     // Verificar tamaño del archivo
-    const fs = await import('fs');
-    const stats = fs.statSync(filePath);
+    const stats = statSync(filePath);
     const maxSize = 16 * 1024 * 1024; // 16MB límite para audio nativo
 
-    // Obtener vistas desde cache si está disponible
-    const cached = getSearch(chatId);
-    let viewsFormatted = '';
-    if (cached) {
-      const cachedResult = cached.results.find(r => r.video_id === metadata.video_id || r.video_id === videoId);
-      if (cachedResult) {
-        viewsFormatted = cachedResult.views_formatted;
-      }
-    }
-    // Fallback si no hay cache
-    if (!viewsFormatted) {
-      viewsFormatted = 'N/A';
-    }
+    // Usar vistas desde metadata si está disponible
+    const viewsFormatted = metadata.views_formatted || 'N/A';
 
     // Limpiar archivo: remover video stream (cover art) que causa problemas en WhatsApp
     filePath = await cleanAudioFile(filePath);
-    
+
     // Re-leer stats después de limpiar
-    const cleanStats = fs.statSync(filePath);
+    const cleanStats = statSync(filePath);
 
     // Enviar mensaje 1: Thumbnail + info
     const caption = `\`Título:\` ${metadata.title}\n\`Autor:\` ${metadata.artist}\n\`Vistas:\` ${viewsFormatted}\n\`Duración:\` ${metadata.duration_formatted}`;
@@ -346,7 +330,7 @@ async function downloadAndSend(
     }, { quoted: msg });
 
     // Enviar mensaje 2: Audio
-    const audioBuffer = fs.readFileSync(filePath);
+    const audioBuffer = readFileSync(filePath);
     
     if (cleanStats.size <= maxSize) {
       // Audio nativo reproducible - M4A es contenedor MP4 con audio AAC
@@ -372,8 +356,7 @@ async function downloadAndSend(
     // Eliminar archivo temporal después de enviar
     if (filePath) {
       try {
-        const fs = await import('fs');
-        fs.unlinkSync(filePath);
+        unlinkSync(filePath);
       } catch {
         // Ignorar errores de limpieza
       }

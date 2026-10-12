@@ -9,10 +9,8 @@ import { randomBytes } from 'crypto';
 import { writeFile, unlink } from 'fs/promises';
 import { logger } from '../utils/logger.js';
 
-const reuploadRequest = async (msg: WAMessage): Promise<WAMessage> => msg;
-
 const downloadCtx = {
-  reuploadRequest,
+  reuploadRequest: async (msg: WAMessage): Promise<WAMessage> => msg,
   logger: {
     trace: (msg: string) => logger.debug(msg),
     debug: (msg: string) => logger.debug(msg),
@@ -28,8 +26,8 @@ const downloadCtx = {
 async function convertImageToWebp(buffer: Buffer): Promise<Buffer> {
   return sharp(buffer)
     .resize(512, 512, {
-      fit: 'inside',
-      withoutEnlargement: true
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
     })
     .webp({ quality: 80 })
     .toBuffer();
@@ -94,16 +92,21 @@ async function stickerHandler(ctx: { msg: WAMessage; args: string[]; sock: any; 
   try {
     // Determinar el mensaje objetivo para descargar el media
     let targetMsg: WAMessage;
-    
+
     if (messageContent === msg.message) {
       targetMsg = msg;
     } else {
       // Es un mensaje citado - obtener el stanzaId y cargar el mensaje completo
       const stanzaId = msg.message?.extendedTextMessage?.contextInfo?.stanzaId;
       if (stanzaId && sock.loadMessage) {
-        targetMsg = await sock.loadMessage(msg.key.remoteJid!, stanzaId);
+        try {
+          targetMsg = await sock.loadMessage(msg.key.remoteJid!, stanzaId);
+        } catch {
+          // Fallback: usar el mensaje citado directamente si falla loadMessage
+          targetMsg = { ...msg, message: messageContent } as WAMessage;
+        }
       } else {
-        // Fallback: usar el mensaje citado directamente si tiene la info necesaria
+        // Fallback: usar el mensaje citado directamente si no hay loadMessage
         targetMsg = { ...msg, message: messageContent } as WAMessage;
       }
     }
