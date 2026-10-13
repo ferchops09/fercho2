@@ -9,7 +9,7 @@ class Settings:
     log_level: str = os.getenv("LOG_LEVEL", "info")
 
     # Storage - default local si no está en Docker
-    _default_download_dir = os.getenv("DOWNLOAD_DIR") or str(Path(__file__).parent.parent / "downloads")
+    _default_download_dir: str = os.getenv("DOWNLOAD_DIR") or str(Path(__file__).parent.parent / "downloads")
     download_dir: str = _default_download_dir
     max_file_size_mb: int = int(os.getenv("MAX_FILE_SIZE_MB", "50"))
 

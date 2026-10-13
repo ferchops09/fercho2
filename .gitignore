@@ -28,6 +28,7 @@ dlapi/downloads/*
 .env.local
 .env.production
 .env.*.local
+!.env.example
 
 # IDE/Editor
 .vscode/

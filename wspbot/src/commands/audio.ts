@@ -86,9 +86,8 @@ function formatResults(query: string, results: SearchResult[], limit: number): s
     return `*Resultados para:* _${query}_\n\nNo se encontraron resultados.`;
   }
 
-  const totalResults = results.length;
-  const displayLimit = Math.min(limit, totalResults);
-  let output = `*Resultados para:* _${query}_ (${displayLimit}/${totalResults})\n\n`;
+  const displayLimit = Math.min(limit, results.length);
+  let output = `*Resultados para:* _${query}_\n\n`;
 
   results.slice(0, displayLimit).forEach((result, index) => {
     output += `${index + 1}- \`${result.title}\`\n`;

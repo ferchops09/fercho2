@@ -7,6 +7,8 @@ import os
 import re
 import shutil
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from mutagen.mp4 import MP4, MP4Cover
@@ -113,12 +115,11 @@ def inject_metadata(temp_path: Path, final_path: Path, yt: YouTube) -> None:
     # Portada (thumbnail)
     if yt.thumbnail_url:
         try:
-            import urllib.request
             with urllib.request.urlopen(yt.thumbnail_url) as resp:
                 img_data = resp.read()
             audio['covr'] = [MP4Cover(img_data, imageformat=MP4Cover.FORMAT_JPEG)]
             print("[INFO] Portada inyectada")
-        except Exception as e:
+        except (urllib.error.URLError, OSError, ValueError) as e:
             print(f"[WARN] No se pudo descargar portada: {e}")
 
     # Guardar metadatos
@@ -137,7 +138,7 @@ def main():
 
     try:
         download_audio(url, output_dir)
-    except Exception as e:
+    except (RuntimeError, ValueError, OSError, KeyboardInterrupt) as e:
         print(f"[ERROR] {e}")
         import traceback
         traceback.print_exc()

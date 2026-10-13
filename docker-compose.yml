@@ -1,0 +1,45 @@
+services:
+  dlapi:
+    build: ./dlapi
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=info
+      - DOWNLOAD_DIR=/shared/downloads
+      - MAX_FILE_SIZE_MB=50
+      - YT_TIMEOUT_SECONDS=30
+      - YT_MAX_RETRIES=3
+    volumes:
+      - shared_data:/shared
+    networks:
+      - appnet
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7421/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  wspbot:
+    build: ./wspbot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DLAPI_URL=http://dlapi:7421
+    volumes:
+      - shared_data:/shared
+      - ./wspbot/auth_info_baileys:/app/auth_info_baileys
+      - ./wspbot/logs:/app/logs
+    networks:
+      - appnet
+    depends_on:
+      dlapi:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+
+networks:
+  appnet:
+    driver: bridge
+
+volumes:
+  shared_data:

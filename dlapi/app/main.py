@@ -107,8 +107,8 @@ async def search_endpoint(request: web.Request) -> web.Response:
             {"status": "error", "code": "SEARCH_FAILED", "message": str(e)},
             status=500
         )
-    except Exception as e:
-        logger.exception(f"Error inesperado en búsqueda: {query}\n  Error: {e}")
+    except Exception:
+        logger.exception(f"Error inesperado en búsqueda: {query}")
         return web.json_response(
             {"status": "error", "code": "INTERNAL_ERROR", "message": "Error interno del servidor"},
             status=500
